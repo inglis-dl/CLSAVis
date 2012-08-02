@@ -1,0 +1,133 @@
+/*=========================================================================
+
+  Program:  CLSAVis (Canadian Longitudinal Study on Aging Visualizer)
+  Module:   CVUtilities.h
+  Language: C++
+
+  Author: Patrick Emond <emondpd@mcmaster.ca>
+
+=========================================================================*/
+//
+// .SECTION Description
+// A utilities header to include typedefs, macros, global functions, etc.
+//
+
+#ifndef __CVUtilities_h
+#define __CVUtilities_h
+
+#define CLSAVIS_VERSION_MAJOR @CLSAVIS_VERSION_MAJOR@
+#define CLSAVIS_VERSION_MINOR @CLSAVIS_VERSION_MINOR@
+#define CLSAVIS_VERSION_PATCH @CLSAVIS_VERSION_PATCH@
+
+#define CLSAVIS_ROOT_DIR @CLSAVIS_ROOT_DIR@
+#define CLSAVIS_AUX_DIR @CLSAVIS_AUX_DIR@
+#define CLSAVIS_API_DIR @CLSAVIS_API_DIR@
+#define CLSAVIS_APP_DIR @CLSAVIS_APP_DIR@
+#define CLSAVIS_QT_DIR @CLSAVIS_QT_DIR@
+#define CLSAVIS_VTK_DIR @CLSAVIS_VTK_DIR@
+
+// STL headers and typedefs
+#include <vtkstd/map>
+#include <vtkstd/stack>
+#include <vtkstd/string>
+#include <vtksys/ios/sstream>
+#include <vtkstd/vector>
+
+typedef vtkstd::string CVString;
+typedef vtkstd::istringstream CVStringStream;
+typedef vtkstd::stack< CVString > CVStringStack;
+typedef vtkstd::vector< int > CVIntVector;
+typedef vtkstd::vector< CVString > CVStringVector;
+
+//-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-
+struct safe_delete
+{
+  template <typename T>
+  void operator()( T *&p ) { if( p ) { delete p; p = 0; } };
+};
+
+//-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-
+inline void wstrToStr( const std::wstring &wstr, CVString &str )
+{
+  str.clear();
+  for( size_t i = 0; i < wstr.size(); i++ )
+  {
+    wchar_t w = wstr[i];
+    if( w <= 0x7f )
+    {
+      str.push_back( (char)w );
+    }
+    else if( w <= 0x7ff )
+    {
+      str.push_back( 0xc0 | ( ( w >> 6 ) & 0x1f ) );
+      str.push_back( 0x80 | (   w        & 0x3f ) );
+    }
+    else if( w <= 0xffff )
+    {
+      str.push_back( 0xe0 | ( ( w >> 12 ) & 0x0f ) );
+      str.push_back( 0x80 | ( ( w >> 6  ) & 0x3f ) );
+      str.push_back( 0x80 | (   w         & 0x3f ) );
+    }
+    else if( w <= 0x10ffff )
+    {
+      str.push_back( 0xf0 | ( ( w >> 18 ) & 0x07 ) );
+      str.push_back( 0x80 | ( ( w >> 12 ) & 0x3f ) );
+      str.push_back( 0x80 | ( ( w >> 6  ) & 0x3f ) );
+      str.push_back( 0x80 | (   w         & 0x3f ) );
+    }
+    else
+    {
+      str.push_back( '?' );
+    }
+  }
+}
+
+//-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-+#+-
+inline CVString encode_entities( CVString str )
+{
+  CVString subs[] = {
+    "¡", "¢", "£", "¤", "¥", "¦", "§",
+    "¨", "©", "ª", "«", "¬", "®", "¯",
+    "°", "±", "²", "³", "´", "µ", "¶",
+    "·", "¸", "¹", "º", "»", "¼", "½",
+    "¾", "¿", "×", "÷", "À", "Á", "Â",
+    "Ã", "Ä", "Å", "Æ", "Ç", "È", "É",
+    "Ê", "Ë", "Ì", "Í", "Î", "Ï", "Ð",
+    "Ñ", "Ò", "Ó", "Ô", "Õ", "Ö", "Ø",
+    "Ù", "Ú", "Û", "Ü", "Ý", "Þ", "ß",
+    "à", "á", "â", "ã", "ä", "å", "æ",
+    "ç", "è", "é", "ê", "ë", "ì", "í",
+    "î", "ï", "ð", "ñ", "ò", "ó", "ô",
+    "õ", "ö", "ø", "ù", "ú", "û", "ü",
+    "ý", "þ", "ÿ" };
+
+  CVString reps[] = {
+    "&iexcl;", "&cent;", "&pound;", "&curren;", "&yen;", "&brvbar;", "&sect;",
+    "&uml;", "&copy;", "&ordf;", "&laquo;", "&not;", "&reg;", "&macr;",
+    "&deg;", "&plusmn;", "&sup2;", "&sup3;", "&acute;", "&micro;", "&para;",
+    "&middot;", "&cedil;", "&sup1;", "&ordm;", "&raquo;", "&frac14;", "&frac12;",
+    "&frac34;", "&iquest;", "&times;", "&divide;", "&Agrave;", "&Aacute;", "&Acirc;",
+    "&Atilde;", "&Auml;", "&Aring;", "&AElig;", "&Ccedil;", "&Egrave;", "&Eacute;",
+    "&Ecirc;", "&Euml;", "&Igrave;", "&Iacute;", "&Icirc;", "&Iuml;", "&ETH;",
+    "&Ntilde;", "&Ograve;", "&Oacute;", "&Ocirc;", "&Otilde;", "&Ouml;", "&Oslash;",
+    "&Ugrave;", "&Uacute;", "&Ucirc;", "&Uuml;", "&Yacute;", "&THORN;", "&szlig;",
+    "&agrave;", "&aacute;", "&acirc;", "&atilde;", "&auml;", "&aring;", "&aelig;",
+    "&ccedil;", "&egrave;", "&eacute;", "&ecirc;", "&euml;", "&igrave;", "&iacute;",
+    "&icirc;", "&iuml;", "&eth;", "&ntilde;", "&ograve;", "&oacute;", "&ocirc;",
+    "&otilde;", "&ouml;", "&oslash;", "&ugrave;", "&uacute;", "&ucirc;", "&uuml;",
+    "&yacute;", "&thorn;", "&yuml;" };
+  
+  size_t found;
+  for( int j = 0; j < 15; j++ )
+  {
+    do
+    {
+      found = str.find( subs[j] );
+      if( found != CVString::npos )
+      str.replace( found,subs[j].length(), reps[j] );
+    } while( found != CVString::npos );
+  }
+  return str;
+}
+
+#endif // __CVUtilities_h
